@@ -19,11 +19,12 @@ EXTRA_CFLAGS += -I$(BLUEZ_PATH)/attrib -I$(BLUEZ_PATH) -I$(BLUEZ_PATH)/lib -I$(B
 EXTRA_CFLAGS += $(shell pkg-config glib-2.0 --cflags)
 GLIB = $(shell pkg-config glib-2.0 --libs)
 
+.PHONY: clean install
+
 all: $(TARGET)
 
 $(TARGET): $(LOCAL_SRCS) $(BLUEZ_FULL_SRCS)
 	$(CC) -L. $(CFLAGS) $(EXTRA_CFLAGS) -o $@ $(LOCAL_SRCS) $(BLUEZ_FULL_SRCS) $(GLIB)
-
 
 install:
 	install -d $(INSTALL_PREFIX)
