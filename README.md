@@ -43,3 +43,20 @@ You can do the installation steps, including setting the capabilities, with:
 ```
 $ sudo make install
 ```
+
+# Acknowledgements
+
+This project uses source code from the [bluez project](http://www.bluez.org), which is 
+made available under Version 2 of the GNU Public License. 
+See file [`COPYING`](bluez/COPYING) in the [`bluez`](bluez) directory for the full text of this license.
+
+Furthermore, this project includes code (`bluepy-helper.c`) from the 
+[bluepy project](https://github.com/IanHarvey/bluepy) by Ian Harvey, 
+which is a derivative work of BlueZ and therefore also licensed under 
+Version 2 of the GNU Public License.
+
+# License
+
+The source code in the project is licensed under the terms and conditions
+of the GNU General Public License Version 2, the text of which can be
+found in [`bluez/COPYING`](bluez/COPYING).
