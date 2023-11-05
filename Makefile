@@ -1,4 +1,6 @@
 TARGET = bluez-helper
+INSTALL_PREFIX ?= /usr/local/bin
+
 BLUEZ_PATH = ./bluez
 
 BLUEZ_SRCS  = lib/bluetooth.c lib/hci.c lib/sdp.c lib/uuid.c
@@ -21,6 +23,12 @@ all: $(TARGET)
 
 $(TARGET): $(LOCAL_SRCS) $(BLUEZ_FULL_SRCS)
 	$(CC) -L. $(CFLAGS) $(EXTRA_CFLAGS) -o $@ $(LOCAL_SRCS) $(BLUEZ_FULL_SRCS) $(GLIB)
+
+
+install:
+	install -d $(INSTALL_PREFIX)
+	install -m 0755 $(TARGET) $(INSTALL_PREFIX)/$(TARGET)
+	setcap 'cap_net_raw,cap_net_admin+eip' $(INSTALL_PREFIX)/$(TARGET)
 
 clean:
 	rm -f $(TARGET)
