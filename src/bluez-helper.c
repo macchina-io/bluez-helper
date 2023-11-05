@@ -99,10 +99,10 @@ static void cmd_help(int argcp, char **argvp);
 static enum state {
     STATE_DISCONNECTED=0,
     STATE_CONNECTING=1,
-    STATE_CONNECTED=2,
-    STATE_SCANNING=3,
+    STATE_CONNECTED=2
 } conn_state;
 
+static uint8_t scanning = FALSE;
 
 static const char
   *tag_RESPONSE  = "rsp",
@@ -112,7 +112,7 @@ static const char
   *tag_HANDLE    = "hnd",
   *tag_UUID      = "uuid",
   *tag_DATA      = "d",
-  *tag_CONNSTATE = "state",
+  *tag_STATE = "state",
   *tag_SEC_LEVEL = "sec",
   *tag_MTU       = "mtu",
   *tag_DEVICE    = "dst",
@@ -157,7 +157,8 @@ static const char
   *st_DISCONNECTED = "disc",
   *st_CONNECTING   = "tryconn",
   *st_CONNECTED    = "conn",
-  *st_SCANNING    = "scan";
+  *st_SCANNING     = "scan",
+  *st_SCANEND      = "scanend";
 
 // delimits fields in response message
 #define RESP_DELIM "\x1e"
@@ -253,22 +254,17 @@ static void cmd_status(int argcp, char **argvp)
   switch(conn_state)
   {
     case STATE_CONNECTING:
-      send_sym(tag_CONNSTATE, st_CONNECTING);
+      send_sym(tag_STATE, st_CONNECTING);
       send_str(tag_DEVICE, opt_dst);
       break;
 
     case STATE_CONNECTED:
-      send_sym(tag_CONNSTATE, st_CONNECTED);
-      send_str(tag_DEVICE, opt_dst);
-      break;
-
-    case STATE_SCANNING:
-      send_sym(tag_CONNSTATE, st_SCANNING);
+      send_sym(tag_STATE, st_CONNECTED);
       send_str(tag_DEVICE, opt_dst);
       break;
 
     default:
-      send_sym(tag_CONNSTATE, st_DISCONNECTED);
+      send_sym(tag_STATE, st_DISCONNECTED);
       break;
   }
 
@@ -281,6 +277,20 @@ static void set_state(enum state st)
 {
     conn_state = st;
     cmd_status(0, NULL);
+}
+
+static void resp_scan_state(uint8_t scanning)
+{
+  resp_begin(rsp_SCAN);
+  if (scanning)
+  {
+    send_sym(tag_STATE, st_SCANNING);
+  }
+  else
+  {
+    send_sym(tag_STATE, st_SCANEND);
+  }	
+  resp_end();
 }
 
 static void events_handler(const uint8_t *pdu, uint16_t len, gpointer user_data)
@@ -1687,8 +1697,9 @@ static gboolean hci_monitor_cb(GIOChannel *chan, GIOCondition cond, gpointer use
                     if (lescan->enable) {
                         DBG("Start of passive scan.");
                     } else {
-                        if (conn_state == STATE_SCANNING) {
-                            set_state(STATE_DISCONNECTED);
+                        if (scanning) {
+                            scanning = FALSE;
+                            resp_scan_state(scanning);
                         }
                         DBG("End of passive scan - removing watch.");
                         return FALSE; // remove watch
@@ -1744,7 +1755,7 @@ static gboolean hci_monitor_cb(GIOChannel *chan, GIOCondition cond, gpointer use
                                     DBG("buf: %02x", ev->data[i]);
                             }
 
-                            if (conn_state == STATE_SCANNING) {
+                            if (scanning) {
                                 resp_begin(rsp_SCAN);
                                 send_addr(&addr);
                                 send_uint(tag_RSSI, 256-rssi);
@@ -1841,7 +1852,8 @@ static void discover(bool start)
         }
 
         resp_mgmt(err_SUCCESS);
-        set_state(STATE_SCANNING);
+        scanning = TRUE;
+        resp_scan_state(scanning);
     } else {
         const char* errcode = err_SUCCESS;
 
@@ -1858,7 +1870,8 @@ static void discover(bool start)
         hci_dd= -1;
         hci_io= NULL;
         resp_mgmt(errcode);
-        set_state(STATE_DISCONNECTED);
+        scanning = FALSE;
+        resp_scan_state(scanning);
     }
 }
 
@@ -2039,7 +2052,8 @@ static void mgmt_scanning(uint16_t index, uint16_t length,
 
     DBG("Scanning (0x%x): %s", ev->type, ev->discovering? "started" : "ended");
 
-    set_state(ev->discovering? STATE_SCANNING : STATE_DISCONNECTED);
+    scanning = ev->discovering;
+    resp_scan_state(scanning);
 }
 
 static void mgmt_device_found(uint16_t index, uint16_t length,
@@ -2051,7 +2065,7 @@ static void mgmt_device_found(uint16_t index, uint16_t length,
     // DBG("Device found: %02X:%02X:%02X:%02X:%02X:%02X type=%X flags=%X", val[5], val[4], val[3], val[2], val[1], val[0], ev->addr.type, ev->flags);
 
     // Result sometimes sent too early
-    if (conn_state != STATE_SCANNING)
+    if (!scanning)
         return;
     //confirm_name(&ev->addr, 1);
 
