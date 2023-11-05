@@ -1,0 +1,9 @@
+This project uses code from the bluez project (http://www.bluez.org), which is 
+made available under Version 2 of the GNU Public License. 
+File COPYING in the bluez directory contains the full text of this license.
+
+Furthermore, this project includes code (bluepy-helper.c) from the 
+bluepy project (https://github.com/IanHarvey/bluepy), which is
+a derivative work of bluez and therefore also licensed under 
+Version 2 of the GNU Public License.
+
