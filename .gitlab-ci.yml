@@ -1,0 +1,9 @@
+stages:
+  - build
+
+build-native:
+  stage: build
+  tags:
+    - ubuntu
+  script:
+    - make
